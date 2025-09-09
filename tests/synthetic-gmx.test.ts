@@ -132,6 +132,13 @@ describe('GMX Synthetic Mode Tests', () => {
       // Backup original environment values
       const originalDefaultRecipientAvax = process.env.DEFAULT_CLAIM_RECIPIENT_AVAX;
       const originalWalletScanAvax = process.env.WALLET_SCAN_AVAX;
+      const originalEnableSyntheticGmx = process.env.ENABLE_SYNTHETIC_GMX;
+      
+      // Mock dotenv to prevent .env file from being reloaded
+      const dotenvMock = vi.hoisted(() => ({
+        config: vi.fn()
+      }));
+      vi.mock('dotenv', () => dotenvMock);
       
       // Clear environment variables for deterministic test
       delete process.env.DEFAULT_CLAIM_RECIPIENT_AVAX;
@@ -143,7 +150,7 @@ describe('GMX Synthetic Mode Tests', () => {
       // Reset modules to reload env configuration
       vi.resetModules();
       
-      // Re-import the integration after env mutation
+      // Re-import the integration after env mutation and dotenv mocking
       const { gmxIntegration: freshGmxIntegration } = await import('../src/integrations/gmx.js');
       
       const wallets = await freshGmxIntegration.discoverWallets();
@@ -156,6 +163,13 @@ describe('GMX Synthetic Mode Tests', () => {
       if (originalWalletScanAvax !== undefined) {
         process.env.WALLET_SCAN_AVAX = originalWalletScanAvax;
       }
+      if (originalEnableSyntheticGmx !== undefined) {
+        process.env.ENABLE_SYNTHETIC_GMX = originalEnableSyntheticGmx;
+      }
+      
+      // Restore dotenv mock
+      vi.doUnmock('dotenv');
+      vi.resetModules();
     });
 
     it('should return empty rewards when synthetic mode is disabled', async () => {
