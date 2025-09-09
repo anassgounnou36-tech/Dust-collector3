@@ -129,6 +129,13 @@ export const gmxIntegration: Integration = {
   },
 
   async getPendingRewards(wallets: Address[]): Promise<PendingReward[]> {
+    // Check if staking is disabled
+    if (!env.enableGmxStaking) {
+      console.log('GMX: Staking integration disabled (ENABLE_GMX_STAKING=false)');
+      console.log('GMX: Use gmx-dust integration for ERC20 balance collection');
+      return [];
+    }
+
     if (env.enableSyntheticGmx) {
       // Synthetic mode: return mock GMX rewards
       console.log(`GMX: Using synthetic mode for reward scanning (${wallets.length} wallets)`);

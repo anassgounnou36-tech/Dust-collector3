@@ -28,6 +28,7 @@ export const env = {
 
   // Feature flags
   enableSyntheticGmx: process.env.ENABLE_SYNTHETIC_GMX === 'true',
+  enableGmxStaking: process.env.ENABLE_GMX_STAKING !== 'false', // Default enabled for legacy compatibility
   devLowerThresholds: process.env.DEV_LOWER_THRESHOLDS === 'true',
   enableTraderJoe: process.env.ENABLE_TRADERJOE !== 'false',
 
@@ -53,6 +54,11 @@ export const env = {
   // GMX specific configuration
   gmxMinUsd: parseFloat(process.env.GMX_MIN_USD || '5.0'),
   gmxRewardRouterV2AbiPath: process.env.GMX_REWARD_ROUTER_V2_ABI_PATH || './abi/gmx_reward_router_v2.json',
+
+  // GMX Dust Collection configuration
+  gmxDustTokens: process.env.GMX_DUST_TOKENS, // Comma-separated addresses, overrides defaults
+  gmxItemMinUsd: parseFloat(process.env.GMX_ITEM_MIN_USD || '0.50'),
+  avaxPriceUsd: parseFloat(process.env.AVAX_PRICE_USD || '40.0'), // Fallback AVAX price
 
   // Pricing API configuration
   coinGeckoApiKey: process.env.COINGECKO_API_KEY,
