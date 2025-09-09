@@ -1,0 +1,34 @@
+{
+  "chains": {
+    "avalanche": {
+      "rpcUrl": "https://api.avax.network/ext/bc/C/rpc"
+    },
+    "tron": {
+      "rpcUrl": "https://api.trongrid.io"
+    }
+  },
+  "pricing": {
+    "stableSymbols": ["USDT", "USDC", "DAI", "BUSD", "FRAX"],
+    "tokenDecimals": {
+      "USDT": 6,
+      "USDC": 6,
+      "DAI": 18,
+      "AVAX": 18,
+      "TRX": 6,
+      "WETH": 18,
+      "WBTC": 8
+    }
+  },
+  "policy": {
+    "cooldownDays": 7,
+    "minItemUsd": 0.10,
+    "minBundleGrossUsd": 2.0,
+    "minBundleNetUsd": 1.0,
+    "maxBundleSize": 30,
+    "minBundleSize": 10
+  },
+  "database": {
+    "path": "./bot.db"
+  },
+  "mockMode": false
+}

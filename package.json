@@ -1,0 +1,62 @@
+{
+  "name": "cross-protocol-dust-collector-bot",
+  "version": "1.0.0",
+  "description": "A modular bot that discovers wallets with unclaimed protocol rewards on Tron and Avalanche C-Chain",
+  "main": "dist/cli/run.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx src/cli/run.ts",
+    "build": "tsc",
+    "start": "node dist/cli/run.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "backfill": "tsx src/cli/backfill.ts",
+    "report": "tsx src/cli/report.ts",
+    "one:cycle": "tsx src/cli/single-cycle.ts",
+    "phase4:demo": "tsx examples/phase4-offline-demo.ts",
+    "phase4:loop": "tsx src/pipeline/runPhase4Loop.ts",
+    "ci:install": "npm ci",
+    "ci:build": "npm run build",
+    "ci:test": "npm run test:run",
+    "ci:lint": "npm run lint",
+    "ci:typecheck": "tsc --noEmit",
+    "ci": "npm run ci:install && npm run ci:lint && npm run ci:typecheck && npm run ci:build && npm run ci:test"
+  },
+  "keywords": [
+    "blockchain",
+    "defi",
+    "dust-collector",
+    "tron",
+    "avalanche",
+    "rewards",
+    "bot"
+  ],
+  "author": "anassgounnou36-tech",
+  "license": "MIT",
+  "dependencies": {
+    "dayjs": "^1.11.10",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.9.2",
+    "tronweb": "^5.3.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.10.5",
+    "@types/uuid": "^9.0.7",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^9.6.0"
+  }
+}
