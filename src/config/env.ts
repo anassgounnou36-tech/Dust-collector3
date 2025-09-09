@@ -12,16 +12,19 @@ export const env = {
   dbPath: process.env.DB_PATH || './data/bot.db',
 
   // Chain RPC URLs
-  avalancheRpcUrl: process.env.PRICER_RPC_AVAX || 'https://api.avax.network/ext/bc/C/rpc',
+  avalancheRpcUrl: process.env.AVAX_RPC_URL || process.env.PRICER_RPC_AVAX || 'https://api.avax.network/ext/bc/C/rpc',
   tronRpcUrl: process.env.PRICER_RPC_TRON || 'https://api.trongrid.io',
 
   // Private keys (optional)
-  avalanchePrivateKey: process.env.PRIVATE_KEY_AVAX,
+  avalanchePrivateKey: process.env.PRIVATE_KEY || process.env.PRIVATE_KEY_AVAX,
   tronPrivateKey: process.env.PRIVATE_KEY_TRON,
 
   // Default claim recipients (required when mockMode=false)
   defaultClaimRecipientAvax: process.env.DEFAULT_CLAIM_RECIPIENT_AVAX,
   defaultClaimRecipientTron: process.env.DEFAULT_CLAIM_RECIPIENT_TRON,
+
+  // Wallet scanning configuration
+  walletScanAvax: process.env.WALLET_SCAN_AVAX,
 
   // Feature flags
   enableSyntheticGmx: process.env.ENABLE_SYNTHETIC_GMX === 'true',
