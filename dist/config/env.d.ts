@@ -12,6 +12,7 @@ export declare const env: {
     readonly defaultClaimRecipientTron: string | undefined;
     readonly enableSyntheticGmx: boolean;
     readonly devLowerThresholds: boolean;
+    readonly enableTraderJoe: boolean;
     readonly traderJoeRouter: string;
     readonly traderJoeFactory: string;
     readonly traderJoeQuoter: string;
@@ -61,6 +62,7 @@ export declare function getTestConfig(): {
     defaultClaimRecipientTron: string | undefined;
     enableSyntheticGmx: boolean;
     devLowerThresholds: boolean;
+    enableTraderJoe: boolean;
     traderJoeRouter: string;
     traderJoeFactory: string;
     traderJoeQuoter: string;

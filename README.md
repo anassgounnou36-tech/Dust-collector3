@@ -135,6 +135,15 @@ src/
 ENABLE_SYNTHETIC_GMX=true MOCK_MODE=true npm run one:cycle
 ```
 
+### Disable Trader Joe during development
+To focus on GMX development and disable Trader Joe integration:
+```bash
+# Disable Trader Joe integration to focus on GMX testing
+ENABLE_TRADERJOE=false npm run one:cycle
+```
+
+This will exclude Trader Joe from discovery, scanning, and bundling phases, and prevent any Trader Joe-related logging. Useful when developing or debugging the GMX integration specifically.
+
 ### Development Testing with Lower Thresholds
 ```bash
 # Use development overrides for easier testing

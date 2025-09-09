@@ -95,7 +95,14 @@ function getActiveIntegrations(configObj) {
         logger_js_1.logger.warn('No Tron integrations activated');
     }
     if (configObj.chains.avalanche.privateKey || configObj.mockMode) {
-        integrations.push(gmx_js_1.gmxIntegration, traderjoe_js_1.traderJoeIntegration, benqi_js_1.benqiIntegration, yieldyak_js_1.yieldYakIntegration);
+        integrations.push(gmx_js_1.gmxIntegration, benqi_js_1.benqiIntegration, yieldyak_js_1.yieldYakIntegration);
+        // Add Trader Joe integration only if enabled
+        if (env_js_1.env.enableTraderJoe) {
+            integrations.push(traderjoe_js_1.traderJoeIntegration);
+        }
+        else {
+            logger_js_1.logger.info('Trader Joe integration disabled via ENABLE_TRADERJOE flag');
+        }
     }
     else {
         logger_js_1.logger.warn('No Avalanche integrations activated');
