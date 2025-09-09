@@ -103,7 +103,14 @@ function getActiveIntegrations(configObj: Config): Integration[] {
   }
 
   if (configObj.chains.avalanche.privateKey || configObj.mockMode) {
-    integrations.push(gmxIntegration, traderJoeIntegration, benqiIntegration, yieldYakIntegration);
+    integrations.push(gmxIntegration, benqiIntegration, yieldYakIntegration);
+    
+    // Add Trader Joe integration only if enabled
+    if (env.enableTraderJoe) {
+      integrations.push(traderJoeIntegration);
+    } else {
+      logger.info('Trader Joe integration disabled via ENABLE_TRADERJOE flag');
+    }
   } else {
     logger.warn('No Avalanche integrations activated');
   }

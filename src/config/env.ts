@@ -26,6 +26,7 @@ export const env = {
   // Feature flags
   enableSyntheticGmx: process.env.ENABLE_SYNTHETIC_GMX === 'true',
   devLowerThresholds: process.env.DEV_LOWER_THRESHOLDS === 'true',
+  enableTraderJoe: process.env.ENABLE_TRADERJOE !== 'false',
 
   // Trader Joe contract addresses
   traderJoeRouter: process.env.TRADERJOE_ROUTER_ADDRESS || '0xb4315e873dBcf96Ffd0acd8EA43f689D8c20fB30',

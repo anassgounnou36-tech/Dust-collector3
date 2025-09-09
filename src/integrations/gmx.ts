@@ -7,11 +7,27 @@ import { join } from 'path';
 
 // Load GMX RewardRouterV2 ABI
 let rewardRouterAbi: any[] = [];
+let trackerAbi: any[] = [];
 try {
   const abiPath = join(process.cwd(), env.gmxRewardRouterV2AbiPath);
   rewardRouterAbi = JSON.parse(readFileSync(abiPath, 'utf8'));
 } catch (error) {
   console.warn('Failed to load GMX RewardRouterV2 ABI:', error);
+}
+
+// Basic tracker ABI for claimable method
+try {
+  trackerAbi = [
+    {
+      "inputs": [{"internalType": "address", "name": "_account", "type": "address"}],
+      "name": "claimable",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ];
+} catch (error) {
+  console.warn('Failed to initialize tracker ABI:', error);
 }
 
 /**
@@ -37,62 +53,32 @@ function estimateGasCost(esGmxRewards: PendingReward[], feeRewards: PendingRewar
 }
 
 /**
- * Encode compound call for claiming both esGMX and fees
+ * Encode handleRewards call for claiming esGMX and WETH only
+ * handleRewards(false,false,true,false,false,true,false)
  */
-function encodeCompoundCall(): string {
+function encodeHandleRewardsCall(): string {
   try {
     if (rewardRouterAbi.length === 0) {
       console.warn('GMX RewardRouter ABI not loaded, using fallback function selector');
-      return '0xf69e2046'; // compound() function selector
+      return '0x48cd4cb1'; // handleRewards function selector
     }
     
     const iface = new ethers.Interface(rewardRouterAbi);
-    const callData = iface.encodeFunctionData('compound', []);
-    console.log(`GMX: Encoded compound() call: ${callData}`);
+    // handleRewards(false,false,true,false,false,true,false) - claim esGMX and WETH only
+    const callData = iface.encodeFunctionData('handleRewards', [
+      false, // _shouldClaimGmx
+      false, // _shouldStakeGmx
+      true,  // _shouldClaimEsGmx
+      false, // _shouldStakeEsGmx
+      false, // _shouldStakeMultiplierPoints
+      true,  // _shouldClaimWeth
+      false  // _shouldConvertWethToEth
+    ]);
+    console.log(`GMX: Encoded handleRewards() call: ${callData}`);
     return callData;
   } catch (error) {
-    console.warn('Failed to encode compound() call:', error);
-    return '0xf69e2046'; // Fallback selector
-  }
-}
-
-/**
- * Encode claimEsGmx call
- */
-function encodeClaimEsGmxCall(): string {
-  try {
-    if (rewardRouterAbi.length === 0) {
-      console.warn('GMX RewardRouter ABI not loaded, using fallback function selector');
-      return '0x5fe7bde9'; // claimEsGmx() function selector
-    }
-    
-    const iface = new ethers.Interface(rewardRouterAbi);
-    const callData = iface.encodeFunctionData('claimEsGmx', []);
-    console.log(`GMX: Encoded claimEsGmx() call: ${callData}`);
-    return callData;
-  } catch (error) {
-    console.warn('Failed to encode claimEsGmx() call:', error);
-    return '0x5fe7bde9'; // Fallback selector
-  }
-}
-
-/**
- * Encode claimFees call
- */
-function encodeClaimFeesCall(): string {
-  try {
-    if (rewardRouterAbi.length === 0) {
-      console.warn('GMX RewardRouter ABI not loaded, using fallback function selector');
-      return '0xd294f093'; // claimFees() function selector
-    }
-    
-    const iface = new ethers.Interface(rewardRouterAbi);
-    const callData = iface.encodeFunctionData('claimFees', []);
-    console.log(`GMX: Encoded claimFees() call: ${callData}`);
-    return callData;
-  } catch (error) {
-    console.warn('Failed to encode claimFees() call:', error);
-    return '0xd294f093'; // Fallback selector
+    console.warn('Failed to encode handleRewards() call:', error);
+    return '0x48cd4cb1'; // Fallback selector
   }
 }
 
@@ -173,22 +159,22 @@ export const gmxIntegration: Integration = {
 
     try {
       const provider = new ethers.JsonRpcProvider(env.avalancheRpcUrl);
-      const rewardRouter = new ethers.Contract(
-        GMX_CONTRACTS.REWARD_ROUTER_V2,
-        rewardRouterAbi,
-        provider
-      );
+      
+      // Initialize tracker contracts
+      const feeGmxTracker = new ethers.Contract(GMX_CONTRACTS.FEE_GMX_TRACKER, trackerAbi, provider);
+      const feeGlpTracker = new ethers.Contract(GMX_CONTRACTS.FEE_GLP_TRACKER, trackerAbi, provider);
+      const stakedGmxTracker = new ethers.Contract(GMX_CONTRACTS.STAKED_GMX_TRACKER, trackerAbi, provider);
       
       for (const wallet of wallets) {
         try {
           const now = new Date();
           
-          // Check claimable esGMX rewards
+          // Check claimable esGMX rewards from stakedGmxTracker
           let claimableEsGmx = BigInt(0);
           try {
-            claimableEsGmx = await rewardRouter.claimableEsGmx(wallet.value);
+            claimableEsGmx = await stakedGmxTracker.claimable(wallet.value);
           } catch (error) {
-            console.warn(`Failed to get claimable esGMX for ${wallet.value}:`, error);
+            console.warn(`Failed to get claimable esGMX from stakedGmxTracker for ${wallet.value}:`, error);
           }
           
           if (claimableEsGmx > BigInt(0)) {
@@ -214,12 +200,12 @@ export const gmxIntegration: Integration = {
             }
           }
           
-          // Check claimable fee rewards (WETH from GMX staking)
+          // Check claimable WETH fee rewards from feeGmxTracker
           let claimableFeeGmx = BigInt(0);
           try {
-            claimableFeeGmx = await rewardRouter.claimableFeeGmx(wallet.value);
+            claimableFeeGmx = await feeGmxTracker.claimable(wallet.value);
           } catch (error) {
-            console.warn(`Failed to get claimable fee GMX for ${wallet.value}:`, error);
+            console.warn(`Failed to get claimable WETH from feeGmxTracker for ${wallet.value}:`, error);
           }
           
           if (claimableFeeGmx > BigInt(0)) {
@@ -245,34 +231,34 @@ export const gmxIntegration: Integration = {
             }
           }
           
-          // Check claimable GLP fee rewards (AVAX)
+          // Check claimable WETH fee rewards from feeGlpTracker
           let claimableFeeGlp = BigInt(0);
           try {
-            claimableFeeGlp = await rewardRouter.claimableFeeGlp(wallet.value);
+            claimableFeeGlp = await feeGlpTracker.claimable(wallet.value);
           } catch (error) {
-            console.warn(`Failed to get claimable fee GLP for ${wallet.value}:`, error);
+            console.warn(`Failed to get claimable WETH from feeGlpTracker for ${wallet.value}:`, error);
           }
           
           if (claimableFeeGlp > BigInt(0)) {
-            // Price AVAX fee rewards
-            const avaxDecimals = 18;
-            const amountTokens = Number(claimableFeeGlp) / Math.pow(10, avaxDecimals);
-            const estimatedPricePerToken = 40.0; // Placeholder price ~$40 per AVAX
+            // Price WETH fee rewards from GLP
+            const wethDecimals = 18;
+            const amountTokens = Number(claimableFeeGlp) / Math.pow(10, wethDecimals);
+            const estimatedPricePerToken = 3000.0; // Placeholder price ~$3000 per WETH
             const amountUsd = amountTokens * estimatedPricePerToken;
             
             if (amountUsd >= env.gmxMinUsd) {
               rewards.push({
-                id: `gmx-fee-avax-${wallet.value}-${Date.now()}`,
+                id: `gmx-fee-glp-weth-${wallet.value}-${Date.now()}`,
                 wallet,
                 protocol: 'gmx',
-                token: { value: GMX_CONTRACTS.WAVAX, chain: 'avalanche' },
+                token: { value: GMX_CONTRACTS.WETH, chain: 'avalanche' },
                 amountWei: claimableFeeGlp.toString(),
                 amountUsd,
                 claimTo: wallet,
                 discoveredAt: now,
                 estGasLimit: 160000
               });
-              console.log(`Found AVAX fee reward: ${amountUsd.toFixed(2)} USD for ${wallet.value}`);
+              console.log(`Found GLP WETH fee reward: ${amountUsd.toFixed(2)} USD for ${wallet.value}`);
             }
           }
           
@@ -349,20 +335,9 @@ export const gmxIntegration: Integration = {
       const estGasUsd = estimateGasCost(esGmxRewards, feeRewards);
       const netUsd = Math.max(0, totalUsd - estGasUsd);
       
-      // Determine the best claiming strategy
-      let callData: string;
-      let contractAddress: string = GMX_CONTRACTS.REWARD_ROUTER_V2;
-      
-      if (esGmxRewards.length > 0 && feeRewards.length > 0) {
-        // Both esGMX and fees - use compound for best efficiency
-        callData = encodeCompoundCall();
-      } else if (esGmxRewards.length > 0) {
-        // Only esGMX rewards
-        callData = encodeClaimEsGmxCall();
-      } else {
-        // Only fee rewards
-        callData = encodeClaimFeesCall();
-      }
+      // Use handleRewards for all GMX claiming - it handles both esGMX and WETH
+      const callData = encodeHandleRewardsCall();
+      const contractAddress = GMX_CONTRACTS.REWARD_ROUTER_V2;
       
       const bundle: ClaimBundle = {
         id: `gmx-bundle-${Date.now()}`,
