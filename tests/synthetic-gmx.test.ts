@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { gmxIntegration } from '../src/integrations/gmx.js';
 import { env } from '../src/config/env.js';
 
@@ -129,8 +129,33 @@ describe('GMX Synthetic Mode Tests', () => {
     });
 
     it('should return empty wallets when synthetic mode is disabled', async () => {
-      const wallets = await gmxIntegration.discoverWallets();
+      // Backup original environment values
+      const originalDefaultRecipientAvax = process.env.DEFAULT_CLAIM_RECIPIENT_AVAX;
+      const originalWalletScanAvax = process.env.WALLET_SCAN_AVAX;
+      
+      // Clear environment variables for deterministic test
+      delete process.env.DEFAULT_CLAIM_RECIPIENT_AVAX;
+      delete process.env.WALLET_SCAN_AVAX;
+      
+      // Ensure synthetic mode is disabled for this test
+      process.env.ENABLE_SYNTHETIC_GMX = 'false';
+      
+      // Reset modules to reload env configuration
+      vi.resetModules();
+      
+      // Re-import the integration after env mutation
+      const { gmxIntegration: freshGmxIntegration } = await import('../src/integrations/gmx.js');
+      
+      const wallets = await freshGmxIntegration.discoverWallets();
       expect(wallets).toHaveLength(0);
+      
+      // Restore original environment values
+      if (originalDefaultRecipientAvax !== undefined) {
+        process.env.DEFAULT_CLAIM_RECIPIENT_AVAX = originalDefaultRecipientAvax;
+      }
+      if (originalWalletScanAvax !== undefined) {
+        process.env.WALLET_SCAN_AVAX = originalWalletScanAvax;
+      }
     });
 
     it('should return empty rewards when synthetic mode is disabled', async () => {

@@ -168,11 +168,12 @@ export const gmxIntegration: Integration = {
       for (const wallet of wallets) {
         try {
           const now = new Date();
+          const acct = wallet.value.toLowerCase();
           
           // Check claimable esGMX rewards from stakedGmxTracker
           let claimableEsGmx = BigInt(0);
           try {
-            claimableEsGmx = await stakedGmxTracker.claimable(wallet.value);
+            claimableEsGmx = await stakedGmxTracker.claimable(acct);
           } catch (error) {
             console.warn(`Failed to get claimable esGMX from stakedGmxTracker for ${wallet.value}:`, error);
           }
@@ -203,7 +204,7 @@ export const gmxIntegration: Integration = {
           // Check claimable WETH fee rewards from feeGmxTracker
           let claimableFeeGmx = BigInt(0);
           try {
-            claimableFeeGmx = await feeGmxTracker.claimable(wallet.value);
+            claimableFeeGmx = await feeGmxTracker.claimable(acct);
           } catch (error) {
             console.warn(`Failed to get claimable WETH from feeGmxTracker for ${wallet.value}:`, error);
           }
@@ -234,7 +235,7 @@ export const gmxIntegration: Integration = {
           // Check claimable WETH fee rewards from feeGlpTracker
           let claimableFeeGlp = BigInt(0);
           try {
-            claimableFeeGlp = await feeGlpTracker.claimable(wallet.value);
+            claimableFeeGlp = await feeGlpTracker.claimable(acct);
           } catch (error) {
             console.warn(`Failed to get claimable WETH from feeGlpTracker for ${wallet.value}:`, error);
           }
