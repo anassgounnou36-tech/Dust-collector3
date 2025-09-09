@@ -17,6 +17,8 @@
     "one:cycle": "tsx src/cli/single-cycle.ts",
     "phase4:demo": "tsx examples/phase4-offline-demo.ts",
     "phase4:loop": "tsx src/pipeline/runPhase4Loop.ts",
+    "gmx:scan": "tsx src/cli/gmx-avalanche.ts scan",
+    "gmx:collect": "tsx src/cli/gmx-avalanche.ts collect",
     "ci:install": "npm ci",
     "ci:build": "npm run build",
     "ci:test": "npm run test:run",

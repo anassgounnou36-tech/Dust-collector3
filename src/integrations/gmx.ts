@@ -97,8 +97,27 @@ export const gmxIntegration: Integration = {
       ];
     }
 
-    // Real implementation: Use configured default recipient
+    // Real implementation: Use configured wallets from WALLET_SCAN_AVAX or fallback to default recipient
     console.log('GMX: Starting real wallet discovery...');
+    
+    if (env.walletScanAvax) {
+      // Parse comma-separated wallet addresses from WALLET_SCAN_AVAX
+      const walletAddresses = env.walletScanAvax
+        .split(',')
+        .map(addr => addr.trim())
+        .filter(addr => addr.length > 0);
+      
+      if (walletAddresses.length > 0) {
+        const wallets = walletAddresses.map(addr => ({
+          value: addr,
+          chain: 'avalanche' as const
+        }));
+        console.log(`GMX: Using ${wallets.length} configured wallets from WALLET_SCAN_AVAX`);
+        return wallets;
+      }
+    }
+    
+    // Fallback to default recipient
     const defaultRecipient = getDefaultClaimRecipient('avalanche');
     if (!defaultRecipient) {
       console.warn('No default claim recipient configured for Avalanche');
@@ -291,7 +310,10 @@ export const gmxIntegration: Integration = {
         items: rewards,
         totalUsd: rewards.reduce((sum, r) => sum + r.amountUsd, 0),
         estGasUsd: 0.25, // Mock gas estimate
-        netUsd: rewards.reduce((sum, r) => sum + r.amountUsd, 0) - 0.25
+        netUsd: rewards.reduce((sum, r) => sum + r.amountUsd, 0) - 0.25,
+        contractAddress: GMX_CONTRACTS.REWARD_ROUTER_V2,
+        callData: encodeHandleRewardsCall(),
+        value: 0
       };
 
       return [bundle];
