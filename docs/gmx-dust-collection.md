@@ -126,7 +126,75 @@ npm run gmx:dust collect --execute
 npm run gmx:dust help
 ```
 
-### Environment Configuration
+### Complete Pipeline Example
+
+Here's a complete end-to-end example of using the multi-source wallet discovery system:
+
+### 1. Set up Environment Variables
+
+```bash
+# Required for basic GMX dust collection
+DEFAULT_CLAIM_RECIPIENT_AVAX=0x742d35Cc6634C0532925a3b8D4b65ED2b2C8b7f5
+AVAX_RPC_URL=https://api.avax.network/ext/bc/C/rpc
+
+# API keys for wallet discovery (obtain from respective services)
+COVALENT_API_KEY=ckey_abc123...
+BITQUERY_API_KEY=BQYabc123...
+SNOWTRACE_API_KEY=ABC123...
+
+# Configuration
+WALLET_FETCH_LIMIT=2000
+DRY_RUN_ONLY=true
+GMX_ITEM_MIN_USD=1.0
+```
+
+### 2. Discover Wallets
+
+```bash
+# Fetch wallets from all configured sources
+npm run wallets:fetch
+
+# Or from a specific source with custom parameters
+npm run wallets:fetch -- --source covalent --limit 1000 --min-usd 2.0
+```
+
+### 3. Review Discovered Wallets
+
+```bash
+# Check the generated wallet list
+head -20 ./data/wallets.csv
+wc -l ./data/wallets.csv
+```
+
+### 4. Scan for GMX Dust
+
+```bash
+# Scan discovered wallets for actual token balances
+npm run gmx:dust scan -- --wallets-file ./data/wallets.csv
+```
+
+### 5. Collect Dust (Dry Run)
+
+```bash
+# Build and review transfer bundles
+npm run gmx:dust collect -- --wallets-file ./data/wallets.csv
+```
+
+### 6. Execute Transfers (Production)
+
+```bash
+# Set private key and execute actual transfers
+PRIVATE_KEY=0x... npm run gmx:dust collect --execute -- --wallets-file ./data/wallets.csv
+```
+
+### 7. Review Results
+
+```bash
+# Check which wallets had qualifying balances
+cat ./data/accepted-wallets.csv
+```
+
+## Environment Configuration
 
 #### Required Variables
 
@@ -209,6 +277,65 @@ npm run gmx:dust collect --execute
 - **Gas Estimation**: Shows estimated gas costs and net profit before execution
 - **Address Validation**: Validates recipient addresses in non-mock mode
 - **No Staking Risk**: Only operates on loose token balances, never touches staking
+
+## Troubleshooting
+
+### Common Issues
+
+1. **No wallets discovered**
+   - Check API keys are valid and have sufficient quota
+   - Verify token address is correct
+   - Try individual sources to isolate issues: `--source covalent`
+
+2. **API rate limits**
+   - Reduce `WALLET_FETCH_CONCURRENCY` (default: 4)
+   - Increase rate limiting: `RPC_RATE_LIMIT=5` (default: 10)
+   - Use smaller page sizes: `WALLET_FETCH_PAGE_SIZE=500`
+
+3. **Wallet scanning timeouts**
+   - Reduce batch size in scanner config
+   - Check RPC endpoint stability
+   - Use `RPC_CONCURRENCY=4` (default: 8)
+
+4. **File format errors**
+   - Ensure CSV headers match expected format
+   - Check for invalid addresses (must be 42 chars starting with 0x)
+   - Verify file encoding is UTF-8
+
+5. **Low discovery results**
+   - Lower `--min-usd` threshold
+   - Try different token addresses for discovery
+   - Use multiple sources with `--source all`
+
+### Debug Mode
+
+Enable verbose logging by setting:
+```bash
+DEBUG=1 npm run wallets:fetch
+DEBUG=1 npm run gmx:dust scan
+```
+
+### File Formats
+
+**Input CSV format** (for file import):
+```csv
+address,chain,source,balance_tokens,balance_usd,token_symbol,token_address,discovered_at
+0x...,avalanche,manual,1.5,37.5,GMX,0x62edc...,2024-01-01T00:00:00.000Z
+```
+
+**Output CSV format** (generated wallets):
+```csv
+address,chain,source,balance_tokens,balance_usd,token_symbol,token_address,discovered_at
+0x...,avalanche,covalent,2.1,52.5,GMX,0x62edc...,2024-01-01T12:30:45.123Z
+```
+
+### Security Notes
+
+- **Always use dry-run first**: `DRY_RUN_ONLY=true` (default)
+- **Verify recipients**: Only use wallets you control
+- **Private key safety**: Never commit private keys, use environment variables
+- **API key rotation**: Rotate API keys regularly and monitor usage
+- **Gas budget**: Set appropriate limits to avoid excessive fees
 
 ## Output Examples
 
@@ -334,3 +461,47 @@ This will cause the original GMX integration to skip all staking operations and 
 - Per-token USD prices from environment variables
 - Fallback to hardcoded estimates if env vars not set
 - Unknown tokens show as $0.00 value and are included in logs for transparency
+
+## Monitoring and Maintenance
+
+### Regular Maintenance Tasks
+
+1. **API Key Monitoring**
+   - Check API usage quotas monthly
+   - Rotate keys quarterly for security
+   - Monitor rate limit alerts
+
+2. **Performance Tuning**
+   - Review discovery success rates
+   - Adjust concurrency settings based on performance
+   - Monitor RPC endpoint reliability
+
+3. **Data Management**
+   - Archive old wallet CSV files
+   - Clean up temp files in `/tmp`
+   - Monitor disk usage for data files
+
+4. **Security Audits**
+   - Review recipient wallet allowlists
+   - Verify private key storage security
+   - Check for any hardcoded secrets
+
+### Automation Setup
+
+For production use, consider setting up automated scheduling:
+
+```bash
+# Daily wallet discovery (cron job example)
+0 6 * * * cd /path/to/project && npm run wallets:fetch > logs/discovery.log 2>&1
+
+# Weekly dust collection (with manual review)
+0 9 * * 1 cd /path/to/project && npm run gmx:dust scan -- --wallets-file ./data/wallets.csv > logs/scan.log 2>&1
+```
+
+### Integration with Existing Systems
+
+The wallet discovery system can be integrated with:
+- **Monitoring tools**: Export metrics to Prometheus/Grafana
+- **Notification systems**: Send alerts on discovery milestones
+- **Portfolio tracking**: Import discovered balances into accounting systems
+- **Risk management**: Set automated limits on transaction values
