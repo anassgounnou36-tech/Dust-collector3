@@ -26,6 +26,22 @@ export const env = {
   // Wallet scanning configuration
   walletScanAvax: process.env.WALLET_SCAN_AVAX,
 
+  // Multi-source wallet discovery
+  covalentApiKey: process.env.COVALENT_API_KEY,
+  bitqueryApiKey: process.env.BITQUERY_API_KEY,
+  snowtraceApiKey: process.env.SNOWTRACE_API_KEY,
+  flipsideApiKey: process.env.FLIPSIDE_API_KEY,
+  
+  walletFetchPageSize: parseInt(process.env.WALLET_FETCH_PAGE_SIZE || '1000'),
+  walletFetchLimit: parseInt(process.env.WALLET_FETCH_LIMIT || '5000'),
+  rpcConcurrency: parseInt(process.env.RPC_CONCURRENCY || '8'),
+  rpcRateLimit: parseInt(process.env.RPC_RATE_LIMIT || '10'),
+  walletFetchConcurrency: parseInt(process.env.WALLET_FETCH_CONCURRENCY || '4'),
+  
+  defaultWalletsFile: process.env.DEFAULT_WALLETS_FILE || './data/wallets.csv',
+  acceptedWalletsFile: process.env.ACCEPTED_WALLETS_FILE || './data/accepted-wallets.csv',
+  dryRunOnly: process.env.DRY_RUN_ONLY === 'true',
+
   // Feature flags
   enableSyntheticGmx: process.env.ENABLE_SYNTHETIC_GMX === 'true',
   enableGmxStaking: process.env.ENABLE_GMX_STAKING !== 'false', // Default enabled for legacy compatibility

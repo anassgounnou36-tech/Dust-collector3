@@ -1,8 +1,16 @@
-# GMX Dust Collection v1
+# GMX Dust Collection v2 - Multi-Source Wallet Discovery
 
 ## Overview
 
-The GMX Dust Collection feature implements a new integration for Avalanche that **only** discovers and transfers loose ERC20 balances held by wallets. This is completely separate from the existing GMX staking integration and does not perform any staking/unstaking operations or claimable reward calls.
+The GMX Dust Collection feature implements a comprehensive wallet discovery and scanning system for Avalanche that **only** discovers and transfers loose ERC20 balances held by wallets. This is completely separate from the existing GMX staking integration and does not perform any staking/unstaking operations or claimable reward calls.
+
+## New Features in v2
+
+- **Multi-Source Wallet Discovery**: Fetch wallet addresses from Covalent, Bitquery, SnowTrace APIs, or local files
+- **Batched Wallet Scanner**: Process large wallet lists with throttling, retries, and rate limiting
+- **Enhanced CLI**: New `wallets:fetch` command for wallet discovery and improved `gmx:dust` with file support
+- **Production Safety**: Dry-run by default, explicit confirmation required for live execution
+- **Comprehensive Testing**: Unit tests, integration tests, and E2E smoke tests
 
 ## Key Features
 
@@ -13,7 +21,94 @@ The GMX Dust Collection feature implements a new integration for Avalanche that 
 - **Dry-Run Mode**: Safe testing without broadcasting transactions
 - **Mock Mode**: Testing with synthetic data
 
-## Usage
+## Wallet Discovery Pipeline
+
+### Step 1: Fetch Wallets from Multiple Sources
+
+Use the new `wallets:fetch` CLI to discover wallet addresses from public APIs:
+
+```bash
+# Fetch from all configured sources (requires API keys)
+npm run wallets:fetch
+
+# Fetch from specific source
+npm run wallets:fetch -- --source covalent --limit 1000
+
+# Use custom token address
+npm run wallets:fetch -- --token 0x62edc0692BD897D2295872a9FFCac5425011c661 --output ./my-wallets.csv
+
+# Import from local file
+npm run wallets:fetch -- --source file --file=./my-wallet-list.csv
+```
+
+### Step 2: Scan Wallets for GMX Dust
+
+Use the enhanced `gmx:dust` CLI to scan discovered wallets:
+
+```bash
+# Scan wallets from generated CSV file
+npm run gmx:dust scan -- --wallets-file ./data/wallets.csv
+
+# Collect (dry-run) from discovered wallets
+npm run gmx:dust collect -- --wallets-file ./data/wallets.csv
+
+# Execute actual transfers (requires private key and confirmation)
+npm run gmx:dust collect --execute -- --wallets-file ./data/wallets.csv
+```
+
+### Step 3: Review Results
+
+Check the accepted wallets file for qualifying candidates:
+
+```bash
+cat ./data/accepted-wallets.csv
+```
+
+## API Key Setup
+
+### Required Environment Variables
+
+Add these to your `.env` file:
+
+```bash
+# API keys for wallet discovery (at least one required)
+COVALENT_API_KEY=ckey_abc123...
+BITQUERY_API_KEY=BQYabc123...
+SNOWTRACE_API_KEY=ABC123...
+
+# Fetch configuration
+WALLET_FETCH_PAGE_SIZE=1000
+WALLET_FETCH_LIMIT=5000
+WALLET_FETCH_CONCURRENCY=4
+
+# Rate limiting
+RPC_CONCURRENCY=8
+RPC_RATE_LIMIT=10
+
+# File paths
+DEFAULT_WALLETS_FILE=./data/wallets.csv
+ACCEPTED_WALLETS_FILE=./data/accepted-wallets.csv
+
+# Safety (recommended)
+DRY_RUN_ONLY=true
+```
+
+### Obtaining API Keys
+
+1. **Covalent API Key**:
+   - Visit [Covalent API](https://www.covalenthq.com/platform/auth/register/)
+   - Register for free tier (100k requests/month)
+   - Copy API key to `COVALENT_API_KEY`
+
+2. **Bitquery API Key**:
+   - Visit [Bitquery](https://bitquery.io/)
+   - Sign up for GraphQL API access
+   - Copy API key to `BITQUERY_API_KEY`
+
+3. **SnowTrace API Key**:
+   - Visit [SnowTrace](https://snowtrace.io/apis)
+   - Register for free API key
+   - Copy API key to `SNOWTRACE_API_KEY`
 
 ### Basic Commands
 

@@ -20,6 +20,7 @@
     "gmx:scan": "tsx src/cli/gmx-avalanche.ts scan",
     "gmx:collect": "tsx src/cli/gmx-avalanche.ts collect",
     "gmx:dust": "tsx src/cli/gmx-dust.ts",
+    "wallets:fetch": "tsx src/cli/wallets-fetch.ts",
     "ci:install": "npm ci",
     "ci:build": "npm run build",
     "ci:test": "npm run test:run",

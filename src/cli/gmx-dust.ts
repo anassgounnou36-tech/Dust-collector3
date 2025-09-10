@@ -15,9 +15,11 @@ config();
 class GMXDustCLI {
   private provider: AvalancheClient | null = null;
 
-  constructor() {
-    this.validateEnvironment();
-    this.initializeProvider();
+  constructor(skipValidation: boolean = false) {
+    if (!skipValidation) {
+      this.validateEnvironment();
+      this.initializeProvider();
+    }
   }
 
   private validateEnvironment(): void {
@@ -43,6 +45,35 @@ class GMXDustCLI {
     console.log(`🔗 Connected to Avalanche RPC: ${env.avalancheRpcUrl}`);
   }
 
+  private async loadWalletsFromFile(walletsFile: string): Promise<Array<{value: string, chain: 'avalanche'}>> {
+    const { existsSync, readFileSync } = await import('fs');
+    
+    if (!existsSync(walletsFile)) {
+      throw new Error(`Wallets file not found: ${walletsFile}`);
+    }
+
+    const content = readFileSync(walletsFile, 'utf8');
+    const lines = content.split('\n').slice(1); // Skip header
+    const wallets: Array<{value: string, chain: 'avalanche'}> = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      const fields = trimmed.split(',');
+      const address = fields[0]?.trim();
+      
+      if (address && address.startsWith('0x') && address.length === 42) {
+        wallets.push({
+          value: address,
+          chain: 'avalanche'
+        });
+      }
+    }
+
+    return wallets;
+  }
+
   private validateExecutionEnvironment(): void {
     if (!env.avalanchePrivateKey) {
       console.error('❌ Error: PRIVATE_KEY is required for --execute mode');
@@ -55,7 +86,7 @@ class GMXDustCLI {
     console.log('🔑 Wallet initialized for transaction execution');
   }
 
-  async scan(): Promise<void> {
+  async scan(walletsFile?: string): Promise<void> {
     console.log('\n🧹 GMX Dust Collection Scanner');
     console.log('==============================');
     console.log('Scanning for loose ERC20 token balances (no staking rewards)');
@@ -63,7 +94,15 @@ class GMXDustCLI {
     try {
       // Discover wallets
       console.log('\n📍 Discovering wallets...');
-      const wallets = await gmxDustIntegration.discoverWallets();
+      let wallets;
+      
+      if (walletsFile) {
+        console.log(`📁 Loading wallets from file: ${walletsFile}`);
+        wallets = await this.loadWalletsFromFile(walletsFile);
+      } else {
+        wallets = await gmxDustIntegration.discoverWallets();
+      }
+      
       console.log(`✅ Found ${wallets.length} wallet(s) to scan:`);
       wallets.forEach((wallet, i) => {
         console.log(`   ${i + 1}. ${wallet.value} (${wallet.chain})`);
@@ -123,7 +162,7 @@ class GMXDustCLI {
     }
   }
 
-  async collect(execute: boolean = false): Promise<void> {
+  async collect(execute: boolean = false, walletsFile?: string): Promise<void> {
     const mode = execute ? 'EXECUTION' : 'DRY-RUN';
     console.log(`\n⚡ GMX Dust Collector (${mode})`);
     console.log('=============================');
@@ -139,7 +178,15 @@ class GMXDustCLI {
     try {
       // Discover wallets and token balances
       console.log('\n📍 Discovering wallets and token balances...');
-      const wallets = await gmxDustIntegration.discoverWallets();
+      let wallets;
+      
+      if (walletsFile) {
+        console.log(`📁 Loading wallets from file: ${walletsFile}`);
+        wallets = await this.loadWalletsFromFile(walletsFile);
+      } else {
+        wallets = await gmxDustIntegration.discoverWallets();
+      }
+      
       const rewards = await gmxDustIntegration.getPendingRewards(wallets);
 
       if (rewards.length === 0) {
@@ -252,9 +299,14 @@ class GMXDustCLI {
   public printUsage(): void {
     console.log('\nGMX Dust Collection CLI - Collect loose ERC20 balances (Avalanche)');
     console.log('\nUsage:');
-    console.log('  npm run gmx:dust scan                # Discover wallets and list token balances (dry run)');
-    console.log('  npm run gmx:dust collect            # Build transfer bundles (dry run)');
-    console.log('  npm run gmx:dust collect --execute  # Execute ERC20 transfers');
+    console.log('  npm run gmx:dust scan                              # Discover wallets and list token balances (dry run)');
+    console.log('  npm run gmx:dust scan -- --wallets-file FILE      # Scan wallets from CSV file');
+    console.log('  npm run gmx:dust collect                          # Build transfer bundles (dry run)');
+    console.log('  npm run gmx:dust collect --execute                # Execute ERC20 transfers');
+    console.log('  npm run gmx:dust collect -- --wallets-file FILE   # Collect from CSV file');
+    console.log('\nArguments:');
+    console.log('  --wallets-file FILE     # Use wallets from CSV file instead of env config');
+    console.log('  --execute              # Execute transactions (only for collect command)');
     console.log('\nRequired Environment Variables:');
     console.log('  • DEFAULT_CLAIM_RECIPIENT_AVAX      # Your controlled wallet address (where tokens go)');
     console.log('  • AVAX_RPC_URL                     # Avalanche RPC endpoint');
@@ -282,21 +334,28 @@ class GMXDustCLI {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const command = args[0];
+  
+  // Show help without environment validation
+  if (command === 'help' || command === '--help' || command === '-h') {
+    const cli = new GMXDustCLI(true); // Skip validation
+    cli.printUsage();
+    return;
+  }
+  
   const hasExecuteFlag = args.includes('--execute');
+  
+  // Parse --wallets-file argument
+  const walletsFileIndex = args.findIndex(arg => arg === '--wallets-file');
+  const walletsFile = walletsFileIndex !== -1 ? args[walletsFileIndex + 1] : undefined;
 
   const cli = new GMXDustCLI();
 
   switch (command) {
     case 'scan':
-      await cli.scan();
+      await cli.scan(walletsFile);
       break;
     case 'collect':
-      await cli.collect(hasExecuteFlag);
-      break;
-    case 'help':
-    case '--help':
-    case '-h':
-      cli.printUsage();
+      await cli.collect(hasExecuteFlag, walletsFile);
       break;
     default:
       console.error('❌ Invalid command:', command);
